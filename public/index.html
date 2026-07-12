@@ -1,0 +1,6 @@
+const socket = io('https://megha-tracker.onrender.com');
+
+socket.on('locationUpdate', (data) => {
+    console.log("Location received:", data);
+    // এখানে তোমার ম্যাপে মার্কার আপডেট করার কোডটি বসাও
+});
