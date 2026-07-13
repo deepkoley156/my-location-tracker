@@ -1,25 +1,25 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// সব ফাইলকে সরাসরি সার্ভ করে দেবে
-app.use(express.static(__dirname));
-
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
-
-// ট্র্যাকার থেকে ডেটা রিসিভ করা
+// এই রুটটি আপনার লোকেশন রিসিভ করবে
 app.get('/update', (req, res) => {
-    const data = req.query;
-    if (data.lat && data.lon) {
-        io.emit('locationUpdate', { latitude: data.lat, longitude: data.lon });
-        res.status(200).send('OK');
+    const lat = req.query.lat;
+    const lng = req.query.lng;
+
+    if (lat && lng) {
+        console.log(`[DATA RECEIVED] Latitude: ${lat}, Longitude: ${lng}`);
+        res.status(200).send("Location received successfully!");
     } else {
-        res.status(400).send('Missing lat/lon');
+        res.status(400).send("Missing parameters");
     }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// সার্ভারটি চলছে কি না বোঝার জন্য
+app.get('/', (req, res) => {
+    res.send("Server is running! The tracker is ready.");
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
