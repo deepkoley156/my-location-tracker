@@ -1,65 +1,30 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Location Tracker</title>
-    
-    <!-- Leaflet CSS (ম্যাপের ডিজাইনের জন্য) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        /* ম্যাপটিকে পুরো স্ক্রিন জুড়ে দেখানোর জন্য */
-        html, body, #map {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            background-color: #f4f4f4;
-        }
-    </style>
+    <title>Where is Pradip?</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>#map { height: 500px; width: 100%; }</style>
 </head>
 <body>
-
-    <!-- এখানেই ম্যাপটি লোড হবে -->
+    <h1>Megha, Pradip is here:</h1>
     <div id="map"></div>
 
-    <!-- প্রয়োজনীয় লাইব্রেরি ফাইল (Socket.io এবং Leaflet JS) -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // ১. তোমার লাইভ Render সার্ভারের সাথে কানেক্ট করা
-        const socket = io('https://megha-tracker3.onrender.com'); 
+        const map = L.map('map').setView([22.57, 88.36], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        const marker = L.marker([22.57, 88.36]).addTo(map);
 
-        // ২. ম্যাপ ইনিশিয়েলাইজ করা (ডিফল্ট ভিউ কলকাতা রাখা হয়েছে)
-        const map = L.map('map').setView([22.5726, 88.3639], 13);
-
-        // ৩. ম্যাপের ওপর রাস্তাঘাটের লেয়ার যোগ করা
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
-        let marker = null;
-
-        // ৪. সার্ভার থেকে লাইভ লোকেশন ডেটা রিসিভ করা
-        socket.on('locationUpdate', (data) => {
-            console.log("Location received: ", data);
-            const { latitude, longitude } = data;
-
-            if (latitude && longitude) {
-                // যদি ম্যাপে আগে কোনো মার্কার (পিন) না থাকে, তবে নতুন তৈরি হবে
-                if (marker === null) {
-                    marker = L.marker([latitude, longitude]).addTo(map);
-                    map.setView([latitude, longitude], 16); // লোকেশন ফোকাস করবে
-                } else {
-                    // আর মার্কার থাকলে সেটার পজিশন নিজে থেকে আপডেট হবে
-                    marker.setLatLng([latitude, longitude]);
-                    map.panTo([latitude, longitude]);
-                }
+        // প্রতি ৫ সেকেন্ডে সার্ভার থেকে লোকেশন চেক করবে
+        setInterval(async () => {
+            const res = await fetch('/get-location');
+            const data = await res.json();
+            if(data.lat && data.lng) {
+                marker.setLatLng([data.lat, data.lng]);
+                map.setView([data.lat, data.lng], 15);
             }
-        });
+        }, 5000);
     </script>
 </body>
 </html>
