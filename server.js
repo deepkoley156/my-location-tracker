@@ -7,15 +7,12 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-// এটা রুট ফোল্ডার থেকেই ফাইল লোড করবে, কোনো public ফোল্ডার লাগবে না
-app.use(express.static(__dirname)); 
-
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }
+// রুট থেকে index.html সার্ভ করা
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Traccar ডেটা রিসিভ করার জন্য
+// Traccar ডেটা রিসিভ করার রুট
 app.get('/update', (req, res) => {
     const data = req.query;
     if (data.lat && data.lon) {
@@ -26,6 +23,11 @@ app.get('/update', (req, res) => {
         });
     }
     res.status(200).send('OK');
+});
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*" }
 });
 
 const PORT = process.env.PORT || 3000;
