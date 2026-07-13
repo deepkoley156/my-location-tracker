@@ -1,3 +1,7 @@
+// এটি যোগ করলে সার্ভারটি root URL এ একটি মেসেজ দেখাবে
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 const express = require('express');
 const path = require('path');
 const app = express();
