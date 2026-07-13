@@ -1,36 +1,25 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
 const path = require('path');
-
 const app = express();
-app.use(cors());
 
-// রুট থেকে index.html সার্ভ করা
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// সব ফাইলকে সরাসরি সার্ভ করে দেবে
+app.use(express.static(__dirname));
 
-// Traccar ডেটা রিসিভ করার রুট
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+// ট্র্যাকার থেকে ডেটা রিসিভ করা
 app.get('/update', (req, res) => {
     const data = req.query;
     if (data.lat && data.lon) {
-        console.log('Location received:', data);
-        io.emit('locationUpdate', {
-            latitude: parseFloat(data.lat),
-            longitude: parseFloat(data.lon)
-        });
+        io.emit('locationUpdate', { latitude: data.lat, longitude: data.lon });
+        res.status(200).send('OK');
+    } else {
+        res.status(400).send('Missing lat/lon');
     }
-    res.status(200).send('OK');
-});
-
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
