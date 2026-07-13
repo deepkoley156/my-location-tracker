@@ -2,20 +2,21 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const path = require('path'); // নতুন লাইন
+const path = require('path');
 
 const app = express();
 app.use(cors());
 
-// ম্যাপের ফাইলটি দেখানোর জন্য
-app.use(express.static(path.join(__dirname, 'public'))); 
+// এটা রুট ফোল্ডার থেকেই ফাইল লোড করবে, কোনো public ফোল্ডার লাগবে না
+app.use(express.static(__dirname)); 
 
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*" }
 });
 
-app.get('/update', (req, res) => { // Traccar ডেটা রিসিভ করার জন্য '/update' রুট
+// Traccar ডেটা রিসিভ করার জন্য
+app.get('/update', (req, res) => {
     const data = req.query;
     if (data.lat && data.lon) {
         console.log('Location received:', data);
