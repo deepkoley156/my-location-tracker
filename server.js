@@ -1,23 +1,34 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs'); // ফাইল চেক করার জন্য নতুন লাইব্রেরি
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    const filePath = path.join(__dirname, 'index.html');
+let latestLocation = { lat: 22.5726, lng: 88.3639 }; 
+
+// ১. অ্যাপ থেকে লোকেশন রিসিভ করার কোড (এটাই মিসিং ছিল!)
+app.get('/update', (req, res) => {
+    const lat = req.query.lat;
+    const lng = req.query.lng;
     
-    // ফাইলটি আছে কি না চেক করছে
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
+    if (lat && lng) {
+        latestLocation = { lat: lat, lng: lng };
+        console.log(`[SUCCESS] New Location Received -> Lat: ${lat}, Lng: ${lng}`);
+        res.send("Success");
     } else {
-        // ফাইল না পেলে লগে লিখে দিবে ঠিক কোথায় খুঁজছে
-        const errorMessage = `File not found at: ${filePath}`;
-        console.log(errorMessage);
-        res.status(404).send(errorMessage); 
+        res.status(400).send("Error: Missing Data");
     }
+});
+
+// ২. ম্যাপে লোকেশন পাঠানোর কোড
+app.get('/get-location', (req, res) => {
+    res.json(latestLocation);
+});
+
+// ৩. মেইন পেজ দেখানোর কোড
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
