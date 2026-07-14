@@ -1,20 +1,13 @@
-// এটি যোগ করলে সার্ভারটি root URL এ একটি মেসেজ দেখাবে
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 const express = require('express');
 const path = require('path');
-const app = express();
+const app = express(); // প্রথমে app ডিফাইন করতে হবে
 const PORT = process.env.PORT || 3000;
 
-// পাবলিক ফোল্ডার থেকে ওয়েবসাইট দেখানোর ব্যবস্থা
-// আপনার index.html ফাইলটি 'public' নামক একটি ফোল্ডারে রাখুন
+// এবার এর নিচে সব রুট (Routes) লিখুন
 app.use(express.static('public'));
 
-// লোকেশন জমা রাখার জন্য একটি ভেরিয়েবল
-let latestLocation = { lat: 22.5726, lng: 88.3639 }; // ডিফল্ট লোকেশন
+let latestLocation = { lat: 22.5726, lng: 88.3639 }; 
 
-// ১. অ্যান্ড্রয়েড অ্যাপ থেকে ডাটা নেওয়ার জন্য (API Endpoint)
 app.get('/update', (req, res) => {
     const lat = req.query.lat;
     const lng = req.query.lng;
@@ -28,12 +21,11 @@ app.get('/update', (req, res) => {
     }
 });
 
-// ২. ওয়েবসাইট থেকে লোকেশন চেক করার জন্য
 app.get('/get-location', (req, res) => {
     res.json(latestLocation);
 });
 
-// সার্ভার চালু করা
+// সবশেষে সার্ভার চালু হবে
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
