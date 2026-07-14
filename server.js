@@ -3,17 +3,18 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// যদি index.html ফাইলটি মেইন ফোল্ডারেই থাকে, তবে এটি কাজ করবে
-app.use(express.static(path.join(__dirname))); 
+// ফাইলগুলো মেইন ফোল্ডার থেকেই লোড হবে
+app.use(express.static(__dirname)); 
 
 let latestLocation = { lat: 22.5726, lng: 88.3639 }; 
 
-// অ্যাপের ডাটা নেওয়ার জন্য
+// অ্যাপের ডাটা রিসিভ করার জন্য
 app.get('/update', (req, res) => {
     const lat = req.query.lat;
     const lng = req.query.lng;
     if (lat && lng) {
         latestLocation = { lat: lat, lng: lng };
+        console.log(`[UPDATE] Lat: ${lat}, Lng: ${lng}`);
         res.send("Success");
     } else {
         res.status(400).send("Missing Data");
@@ -25,7 +26,7 @@ app.get('/get-location', (req, res) => {
     res.json(latestLocation);
 });
 
-// রুট ইউআরএল-এ ফাইলটি দেখানোর জন্য
+// মেইন পেজ হিসেবে index.html দেখানোর জন্য
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
