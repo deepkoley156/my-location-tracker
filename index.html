@@ -1,40 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Megha's Tracker</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Megha's Tracker</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; display: none; } /* শুরুতে ম্যাপ লুকানো */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: sans-serif; 
+            overflow: hidden; 
+        }
+        #map { 
+            height: 100vh; 
+            width: 100vw; 
+            display: none; /* শুরুতে ম্যাপ লুকানো থাকবে */
+        }
         #status-overlay { 
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
-            background: #fff; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; z-index: 2000;
-            font-size: 18px; color: #555;
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 2000;
+            font-size: 18px; 
+            color: #555;
         }
         #last-update { 
-            position: fixed; top: 10px; right: 10px; z-index: 1000; 
-            background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; 
-            font-size: 12px; display: none;
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            z-index: 1000; 
+            background: rgba(255,255,255,0.8); 
+            padding: 5px 10px; 
+            border-radius: 5px; 
+            font-size: 12px; 
+            display: none; /* শুরুতে লুকানো থাকবে */
         }
     </style>
 </head>
 <body>
 
+    <!-- লোডিং স্ক্রিন -->
     <div id="status-overlay">
-        <div style="font-size: 50px;">📡</div>
-        <p>Finding your location...</p>
+        <div style="font-size: 50px; margin-bottom: 10px;">📡</div>
+        <p>Finding live location...</p>
     </div>
 
+    <!-- লাস্ট আপডেট টাইম -->
     <div id="last-update">Last update: --</div>
+    
+    <!-- ম্যাপ কন্টেইনার -->
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
+        // ম্যাপ সেটআপ
         const map = L.map('map', { zoomControl: false }).setView([22.5726, 88.3639], 15);
-        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { maxZoom: 21 }).addTo(map);
-        const marker = L.marker([22.5726, 88.3639]).addTo(map);
+        
+        // স্যাটেলাইট ভিউ লেয়ার (Google Maps)
+        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { 
+            maxZoom: 21,
+            attribution: '© Google'
+        }).addTo(map);
+        
+        // শুরুতে মার্কার জিরোতে রাখছি, যাতে ডাটা আসার আগে ভুল জায়গায় পিন না দেখায়
+        const marker = L.marker([0, 0]).addTo(map); 
         
         let firstLoad = true;
 
@@ -43,24 +80,38 @@
                 const response = await fetch('/get-location');
                 const data = await response.json();
                 
+                // ডাটা ঠিকমতো পেলে তবেই ম্যাপে আপডেট হবে
                 if(data.lat && data.lng) {
                     const newLatLng = new L.LatLng(data.lat, data.lng);
                     marker.setLatLng(newLatLng);
                     
                     if(firstLoad) {
-                        map.setView(newLatLng, 17);
+                        // প্রথম ডাটা পাওয়ার পর লোডিং স্ক্রিন সরিয়ে ম্যাপ দেখানো
                         document.getElementById('status-overlay').style.display = 'none';
                         document.getElementById('map').style.display = 'block';
                         document.getElementById('last-update').style.display = 'block';
+                        
+                        // ম্যাপের অর্ধেক ফাঁকা আসার বাগ (Bug) ফিক্স
+                        setTimeout(function(){ 
+                            map.invalidateSize(); 
+                            map.setView(newLatLng, 17);
+                        }, 200); 
+                        
                         firstLoad = false;
+                    } else {
+                        // লাইভ ট্র্যাকিংয়ের সময় আপনি জায়গা বদলালে ম্যাপ অটো-সেন্টার হবে
+                        map.setView(newLatLng); 
                     }
                     
+                    // লাস্ট আপডেট টাইম সেট করা
                     document.getElementById('last-update').innerText = "Last update: " + new Date().toLocaleTimeString();
                 }
-            } catch (error) { console.error("Waiting for data..."); }
+            } catch (error) { 
+                console.error("Waiting for live data..."); 
+            }
         }
         
-        // ৫ সেকেন্ড পর পর চেক করবে
+        // প্রতি ৫ সেকেন্ড পর পর নতুন লোকেশন চেক করবে
         setInterval(fetchLocation, 5000);
         fetchLocation();
     </script>
