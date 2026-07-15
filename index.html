@@ -3,76 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Megha's Tracker</title>
+    <title>Megha's Tracker & Bot</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
+        /* আপনার পছন্দের ক্লিন এবং মিনিমালিস্ট ডিজাইন */
         body { 
             margin: 0; 
             padding: 0; 
-            font-family: sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             overflow: hidden; 
         }
+        
+        /* ম্যাপের স্টাইল */
         #map { 
             height: 100vh; 
             width: 100vw; 
-            display: none; /* শুরুতে ম্যাপ লুকানো থাকবে */
+            display: none; 
         }
         #status-overlay { 
             position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            background: #fff; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 2000;
-            font-size: 18px; 
-            color: #555;
+            top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: #ffffff; 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            z-index: 2000; font-size: 18px; color: #555;
         }
         #last-update { 
             position: fixed; 
-            top: 10px; 
-            right: 10px; 
+            top: 15px; right: 15px; 
             z-index: 1000; 
-            background: rgba(255,255,255,0.8); 
-            padding: 5px 10px; 
-            border-radius: 5px; 
+            background: rgba(255, 255, 255, 0.9); 
+            padding: 8px 12px; 
+            border-radius: 8px; 
             font-size: 12px; 
-            display: none; /* শুরুতে লুকানো থাকবে */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none; 
+        }
+
+        /* --- মেঘার চ্যাটবটের মিনিমালিস্ট UI --- */
+        #chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        #chat-window {
+            width: 300px;
+            height: 400px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+        #chat-header {
+            background: #ff4d6d; /* রোমান্টিক থিম */
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        #chat-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+        #chat-input-area {
+            display: flex;
+            border-top: 1px solid #eee;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        #send-btn {
+            background: #ff4d6d;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #chat-toggle-btn {
+            width: 60px;
+            height: 60px;
+            background: #ff4d6d;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4);
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+        }
+        #chat-toggle-btn:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
 
-    <!-- লোডিং স্ক্রিন -->
+    <!-- লোকেশন খোঁজার লোডিং স্ক্রিন -->
     <div id="status-overlay">
         <div style="font-size: 50px; margin-bottom: 10px;">📡</div>
-        <p>Finding live location...</p>
+        <p>Finding Pradip's live location...</p>
     </div>
 
     <!-- লাস্ট আপডেট টাইম -->
     <div id="last-update">Last update: --</div>
     
-    <!-- ম্যাপ কন্টেইনার -->
+    <!-- লাইভ ম্যাপ -->
     <div id="map"></div>
+
+    <!-- মেঘার জন্য ফ্লোটিং চ্যাটবট -->
+    <div id="chat-container">
+        <div id="chat-window">
+            <div id="chat-header">Megha's Special Bot ❤️</div>
+            <div id="chat-body" id="chat-messages">
+                <div style="margin-bottom: 10px; color: #555; font-size: 14px;">
+                    <strong>Bot:</strong> Hello Megha! You can track Pradip's live location on this map. Message me if you need anything! 
+                </div>
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message...">
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+        <button id="chat-toggle-btn">💬</button>
+    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // ম্যাপ সেটআপ
+        /* =========================================
+           ১. লাইভ লোকেশন ট্র্যাকিংয়ের কোড
+        ========================================= */
         const map = L.map('map', { zoomControl: false }).setView([22.5726, 88.3639], 15);
-        
-        // স্যাটেলাইট ভিউ লেয়ার (Google Maps)
         L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { 
             maxZoom: 21,
             attribution: '© Google'
         }).addTo(map);
         
-        // শুরুতে মার্কার জিরোতে রাখছি, যাতে ডাটা আসার আগে ভুল জায়গায় পিন না দেখায়
         const marker = L.marker([0, 0]).addTo(map); 
-        
         let firstLoad = true;
 
         async function fetchLocation() {
@@ -80,18 +165,15 @@
                 const response = await fetch('/get-location');
                 const data = await response.json();
                 
-                // ডাটা ঠিকমতো পেলে তবেই ম্যাপে আপডেট হবে
                 if(data.lat && data.lng) {
                     const newLatLng = new L.LatLng(data.lat, data.lng);
                     marker.setLatLng(newLatLng);
                     
                     if(firstLoad) {
-                        // প্রথম ডাটা পাওয়ার পর লোডিং স্ক্রিন সরিয়ে ম্যাপ দেখানো
                         document.getElementById('status-overlay').style.display = 'none';
                         document.getElementById('map').style.display = 'block';
                         document.getElementById('last-update').style.display = 'block';
                         
-                        // ম্যাপের অর্ধেক ফাঁকা আসার বাগ (Bug) ফিক্স
                         setTimeout(function(){ 
                             map.invalidateSize(); 
                             map.setView(newLatLng, 17);
@@ -99,11 +181,9 @@
                         
                         firstLoad = false;
                     } else {
-                        // লাইভ ট্র্যাকিংয়ের সময় আপনি জায়গা বদলালে ম্যাপ অটো-সেন্টার হবে
                         map.setView(newLatLng); 
                     }
                     
-                    // লাস্ট আপডেট টাইম সেট করা
                     document.getElementById('last-update').innerText = "Last update: " + new Date().toLocaleTimeString();
                 }
             } catch (error) { 
@@ -111,9 +191,39 @@
             }
         }
         
-        // প্রতি ৫ সেকেন্ড পর পর নতুন লোকেশন চেক করবে
         setInterval(fetchLocation, 5000);
         fetchLocation();
+
+        /* =========================================
+           ২. চ্যাটবটের কন্ট্রোল কোড
+        ========================================= */
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        const chatWindow = document.getElementById('chat-window');
+        const sendBtn = document.getElementById('send-btn');
+        const chatInput = document.getElementById('chat-input');
+        const chatBody = document.getElementById('chat-body');
+
+        // চ্যাট উইন্ডো খোলা এবং বন্ধ করার লজিক
+        chatToggleBtn.addEventListener('click', () => {
+            if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
+                chatWindow.style.display = 'flex';
+                chatToggleBtn.innerText = '✖'; // বন্ধ করার আইকন
+            } else {
+                chatWindow.style.display = 'none';
+                chatToggleBtn.innerText = '💬'; // চ্যাট আইকন
+            }
+        });
+
+        // মেসেজ পাঠানোর লজিক (আপনার আগের বটের লজিক চাইলে এখানে বসাতে পারবেন)
+        sendBtn.addEventListener('click', () => {
+            const text = chatInput.value.trim();
+            if(text) {
+                // মেঘার মেসেজ ডানদিকে দেখাবে
+                chatBody.innerHTML += `<div style="margin-bottom: 10px; color: #ff4d6d; text-align: right; font-size: 14px;"><strong>Megha:</strong> ${text}</div>`;
+                chatInput.value = '';
+                chatBody.scrollTop = chatBody.scrollHeight; // স্ক্রল নিচে নামানোর জন্য
+            }
+        });
     </script>
 </body>
 </html>
