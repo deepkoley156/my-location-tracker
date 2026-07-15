@@ -1,46 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Location</title>
+    <title>Live Location - Advanced</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background-color: #f4f4f4; }
-        h3 { text-align: center; margin: 10px 0; color: #333; }
-        #map { height: 90vh; width: 100vw; border-top: 2px solid #ddd; }
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; width: 100vw; }
     </style>
 </head>
 <body>
-    <h3>Tracking Pradip's Location...</h3>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // প্রাথমিক সেটআপ
-        const map = L.map('map').setView([22.5726, 88.3639], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-        
+        // স্যাটেলাইট ভিউ এবং স্ট্রিট ভিউ সেটআপ
+        const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' });
+
+        const map = L.map('map', {
+            layers: [street] // প্রথমে স্ট্রিট ভিউতে থাকবে
+        }).setView([22.5726, 88.3639], 15);
+
+        // লেয়ার কন্ট্রোল (ম্যাপের ওপর স্যাটেলাইট মোড যোগ করার জন্য)
+        L.control.layers({ "Street View": street, "Satellite View": satellite }).addTo(map);
+
         const marker = L.marker([22.5726, 88.3639]).addTo(map);
 
-        // সার্ভার থেকে ডাটা আনার ফাংশন
         async function fetchLocation() {
             try {
                 const response = await fetch('/get-location');
                 const data = await response.json();
-                
                 if(data.lat && data.lng) {
                     const newLatLng = new L.LatLng(data.lat, data.lng);
                     marker.setLatLng(newLatLng);
-                    map.panTo(newLatLng); // ম্যাপটি স্মুথলি নতুন লোকেশনে সরে যাবে
+                    map.panTo(newLatLng);
                 }
-            } catch (error) {
-                console.error("Error fetching location:", error);
-            }
+            } catch (error) { console.error("Error:", error); }
         }
 
-        // প্রতি ৫ সেকেন্ডে আপডেট চেক করবে
         setInterval(fetchLocation, 5000);
     </script>
 </body>
