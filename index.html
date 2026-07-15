@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Location - Advanced</title>
+    <title>Megha's Tracker - Live</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
@@ -14,19 +14,28 @@
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // স্যাটেলাইট ভিউ এবং স্ট্রিট ভিউ সেটআপ
-        const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
-        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' });
+        // একদম আসল গুগল ম্যাপের লেয়ার
+        // স্ট্রিট ভিউ (রাস্তাঘাট)
+        const googleStreet = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', { 
+            attribution: '© Google', maxZoom: 21 
+        });
+        
+        // হাইব্রিড ভিউ (স্যাটেলাইট + রাস্তার নাম ও লেবেল)
+        const googleSatellite = L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { 
+            attribution: '© Google', maxZoom: 21 
+        });
 
+        // ম্যাপ খুললেই প্রথমে গুগল স্যাটেলাইট (নামসহ) দেখাবে
         const map = L.map('map', {
-            layers: [street] // প্রথমে স্ট্রিট ভিউতে থাকবে
-        }).setView([22.5726, 88.3639], 15);
+            layers: [googleSatellite] 
+        }).setView([22.5726, 88.3639], 16); // 16 মানে একটু বেশি জুম হয়ে থাকবে
 
-        // লেয়ার কন্ট্রোল (ম্যাপের ওপর স্যাটেলাইট মোড যোগ করার জন্য)
-        L.control.layers({ "Street View": street, "Satellite View": satellite }).addTo(map);
+        // লেয়ার চেঞ্জ করার বাটন
+        L.control.layers({ "Google Street": googleStreet, "Google Satellite": googleSatellite }).addTo(map);
 
         const marker = L.marker([22.5726, 88.3639]).addTo(map);
 
+        // লোকেশন আপডেট করার ফাংশন
         async function fetchLocation() {
             try {
                 const response = await fetch('/get-location');
@@ -39,6 +48,7 @@
             } catch (error) { console.error("Error:", error); }
         }
 
+        // প্রতি ৫ সেকেন্ডে লাইভ আপডেট
         setInterval(fetchLocation, 5000);
     </script>
 </body>
