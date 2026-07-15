@@ -1,224 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Megha's Tracker & Chat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Megha's Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ffe6f2; overflow: hidden; }
-        
-        /* Map Section */
-        #map { height: 100vh; width: 100vw; transition: height 0.3s ease-in-out; }
-        
-        /* Floating Robot (সাদা বক্স সরিয়ে দিয়েছি, শুধু রোবট ভাসবে) */
-        #floating-bot {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            width: 70px;
-            height: 70px;
-            cursor: pointer;
-            z-index: 1000;
-            animation: bounce 2s infinite;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        body { margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; display: none; } /* শুরুতে ম্যাপ লুকানো */
+        #status-overlay { 
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: #fff; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; z-index: 2000;
+            font-size: 18px; color: #555;
         }
-        #floating-bot img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain; 
-            filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.3)); /* রোবটের পেছনে হালকা শ্যাডো */
+        #last-update { 
+            position: fixed; top: 10px; right: 10px; z-index: 1000; 
+            background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; 
+            font-size: 12px; display: none;
         }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-12px); }
-        }
-        
-        /* Chat Section */
-        #chat-section { 
-            position: fixed;
-            bottom: -100%;
-            left: 0;
-            width: 100vw;
-            height: 50vh; 
-            display: flex; 
-            flex-direction: column; 
-            background: #fff; 
-            transition: bottom 0.3s ease-in-out;
-            z-index: 1001;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
-        }
-        
-        /* Header */
-        #chat-header { display: flex; align-items: center; padding: 10px 15px; background: #ffccdf; border-top-left-radius: 20px; border-top-right-radius: 20px; }
-        #cartoon-gif { width: 45px; height: 45px; margin-right: 15px; object-fit: contain; }
-        #header-text { font-size: 16px; font-weight: bold; color: #d63384; flex-grow: 1; }
-        #close-btn { background: none; border: none; font-size: 20px; color: #d63384; cursor: pointer; font-weight: bold; }
-        
-        /* Chat Box */
-        #chat-box { flex: 1; padding: 15px; overflow-y: auto; background: #fff9fc; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; font-size: 14px; line-height: 1.4; animation: fadeIn 0.3s; }
-        .bot-msg { background: #ffe6f2; color: #d63384; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .megha-msg { background: #d63384; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        
-        /* Input Area */
-        #input-area { display: flex; padding: 10px; background: #fff; border-top: 1px solid #ffccdf; }
-        #user-input { flex: 1; padding: 10px; border: 1px solid #ff99cc; border-radius: 20px; outline: none; font-size: 14px; }
-        #send-btn { background: #d63384; color: white; border: none; padding: 10px 20px; margin-left: 10px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <!-- Map Area -->
+    <div id="status-overlay">
+        <div style="font-size: 50px;">📡</div>
+        <p>Finding your location...</p>
+    </div>
+
+    <div id="last-update">Last update: --</div>
     <div id="map"></div>
-
-    <!-- Floating Cute Robot -->
-    <div id="floating-bot" onclick="toggleChat()">
-        <!-- গুগলের অফিশিয়াল অ্যানিমেটেড রোবট (কখনো ভাঙবে না) -->
-        <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/512.gif" alt="Cute Robot">
-    </div>
-
-    <!-- Chatbot Area -->
-    <div id="chat-section">
-        <div id="chat-header">
-            <img id="cartoon-gif" src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/512.gif" alt="Cute Robot">
-            <div id="header-text">Pradip's AI Assistant 🤖</div>
-            <button id="close-btn" onclick="toggleChat()">✖</button>
-        </div>
-        
-        <div id="chat-box"></div>
-        
-        <div id="input-area">
-            <input type="text" id="user-input" placeholder="Message..." onkeypress="handleEnter(event)">
-            <button id="send-btn" onclick="sendMessage()">Send</button>
-        </div>
-    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        /* ================= MAP LOGIC ================= */
-        const googleStreet = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', { maxZoom: 21 });
-        const googleSatellite = L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { maxZoom: 21 });
-
-        const map = L.map('map', { layers: [googleSatellite] }).setView([22.5726, 88.3639], 16);
-        L.control.layers({ "Street View": googleStreet, "Satellite View": googleSatellite }).addTo(map);
+        const map = L.map('map', { zoomControl: false }).setView([22.5726, 88.3639], 15);
+        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { maxZoom: 21 }).addTo(map);
         const marker = L.marker([22.5726, 88.3639]).addTo(map);
+        
+        let firstLoad = true;
 
         async function fetchLocation() {
             try {
                 const response = await fetch('/get-location');
                 const data = await response.json();
+                
                 if(data.lat && data.lng) {
                     const newLatLng = new L.LatLng(data.lat, data.lng);
                     marker.setLatLng(newLatLng);
-                    map.panTo(newLatLng);
+                    
+                    if(firstLoad) {
+                        map.setView(newLatLng, 17);
+                        document.getElementById('status-overlay').style.display = 'none';
+                        document.getElementById('map').style.display = 'block';
+                        document.getElementById('last-update').style.display = 'block';
+                        firstLoad = false;
+                    }
+                    
+                    document.getElementById('last-update').innerText = "Last update: " + new Date().toLocaleTimeString();
                 }
-            } catch (error) { console.error(error); }
+            } catch (error) { console.error("Waiting for data..."); }
         }
+        
+        // ৫ সেকেন্ড পর পর চেক করবে
         setInterval(fetchLocation, 5000);
-
-        /* ================= CHATBOT LOGIC ================= */
-        const chatBox = document.getElementById('chat-box');
-        const userInput = document.getElementById('user-input');
-        const chatSection = document.getElementById('chat-section');
-        const floatingBot = document.getElementById('floating-bot');
-        const mapDiv = document.getElementById('map');
-        
-        let isChatOpen = false;
-        let greetingSent = false;
-        let autoRomanceTimer = null;
-
-        function toggleChat() {
-            isChatOpen = !isChatOpen;
-            if(isChatOpen) {
-                chatSection.style.bottom = "0";
-                floatingBot.style.display = "none";
-                mapDiv.style.height = "50vh"; 
-                
-                setTimeout(() => map.invalidateSize(), 300);
-
-                if(!greetingSent) {
-                    setTimeout(() => { appendMessage(`Hii Megha, ${getGreeting()}! 🌸`, 'bot'); }, 500);
-                    setTimeout(() => { appendMessage("আমি Pradip-এর তৈরি করা একটা ছোট্ট AI বট। প্রদীপের সম্বন্ধে যদি কিছু জানতে চাও বা বলতে চাও, আমাকে বলতে পারো! 🥰", 'bot'); }, 2500);
-                    greetingSent = true;
-                    startAutoRomance(); 
-                }
-            } else {
-                chatSection.style.bottom = "-100%";
-                floatingBot.style.display = "flex";
-                mapDiv.style.height = "100vh"; 
-                
-                setTimeout(() => map.invalidateSize(), 300);
-            }
-        }
-
-        function appendMessage(text, sender) {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('msg');
-            msgDiv.classList.add(sender === 'bot' ? 'bot-msg' : 'megha-msg');
-            msgDiv.innerText = text;
-            chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function getGreeting() {
-            const hour = new Date().getHours();
-            if (hour >= 5 && hour < 12) return "Good Morning 🌅";
-            if (hour >= 12 && hour < 17) return "Good Afternoon ☀️";
-            if (hour >= 17 && hour < 20) return "Good Evening 🌇";
-            return "Good Night 🌙";
-        }
-
-        const romanticMessages = [
-            "জানেন মেঘা, প্রদীপ সারাদিন শুধু আপনার কথাই ভাবে! ❤️",
-            "আপনাকে এই সারপ্রাইজটা দেবে বলে প্রদীপ খুব এক্সাইটেড ছিল।",
-            "আমি তো একটা যন্ত্র, কিন্তু আমি জানি প্রদীপের হৃদয়ে শুধু আপনিই আছেন! 🌸",
-            "প্রদীপ আমাকে স্পেশালি আপনার খেয়াল রাখার জন্যই বানিয়েছে।",
-            "প্রদীপের ফোনে আপনার ছবিটাই বোধহয় সবচেয়ে বেশিবার দেখা হয়! 🙈"
-        ];
-        
-        function startAutoRomance() {
-            if(!autoRomanceTimer) {
-                autoRomanceTimer = setInterval(() => {
-                    const randomMsg = romanticMessages[Math.floor(Math.random() * romanticMessages.length)];
-                    appendMessage(randomMsg, 'bot');
-                }, 45000); 
-            }
-        }
-
-        function sendMessage() {
-            const text = userInput.value.trim();
-            if (!text) return;
-            
-            appendMessage(text, 'megha');
-            userInput.value = '';
-
-            setTimeout(() => {
-                const lowerText = text.toLowerCase();
-                if (lowerText.includes('bhalobasi') || lowerText.includes('love') || lowerText.includes('valobashi')) {
-                    appendMessage("প্রদীপও আপনাকে অনেক অনেক ভালোবাসে! আপনারা সারা জীবন খুব আনন্দে থাকুন। ❤️", 'bot');
-                } 
-                else if (lowerText.includes('kemon') || lowerText.includes('ki obostha')) {
-                    appendMessage("আমি তো খুব ভালো আছি! কিন্তু প্রদীপ আপনাকে ছাড়া একদম ভালো থাকে না! 🙈", 'bot');
-                }
-                else if (lowerText.includes('ki korche') || lowerText.includes('ki kore')) {
-                    appendMessage("প্রদীপ এখন নিজের কাজে ব্যস্ত আছে, কিন্তু ম্যাপে আপনি ওকে দেখছেন ভেবে ও খুব খুশি! ✨", 'bot');
-                }
-                else {
-                    appendMessage("আপনার কথা প্রদীপকে আমি স্পেশালি পৌঁছে দেবো! আর কিছু বলবেন? 🌸", 'bot');
-                }
-            }, 1000);
-        }
-
-        function handleEnter(event) {
-            if (event.key === 'Enter') sendMessage();
-        }
+        fetchLocation();
     </script>
 </body>
 </html>
