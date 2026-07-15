@@ -10,32 +10,33 @@
         /* Map Section */
         #map { height: 100vh; width: 100vw; transition: height 0.3s ease-in-out; }
         
-        /* Floating Bot Button (যেটা লাফাবে) */
+        /* Floating Robot (সাদা বক্স সরিয়ে দিয়েছি, শুধু রোবট ভাসবে) */
         #floating-bot {
             position: fixed;
             bottom: 25px;
             right: 25px;
             width: 70px;
             height: 70px;
-            border-radius: 50%;
-            background: white;
-            box-shadow: 0 4px 15px rgba(214, 51, 132, 0.4);
             cursor: pointer;
+            z-index: 1000;
+            animation: bounce 2s infinite;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
-            animation: bounce 2s infinite;
-            border: 2px solid #ff99cc;
         }
-        #floating-bot img { width: 60px; height: 60px; border-radius: 50%; }
+        #floating-bot img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.3)); /* রোবটের পেছনে হালকা শ্যাডো */
+        }
 
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-12px); }
         }
         
-        /* Chat Section (প্রথম দিকে লুকানো থাকবে) */
+        /* Chat Section */
         #chat-section { 
             position: fixed;
             bottom: -100%;
@@ -54,7 +55,7 @@
         
         /* Header */
         #chat-header { display: flex; align-items: center; padding: 10px 15px; background: #ffccdf; border-top-left-radius: 20px; border-top-right-radius: 20px; }
-        #cartoon-gif { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; background: white; margin-right: 15px; }
+        #cartoon-gif { width: 45px; height: 45px; margin-right: 15px; object-fit: contain; }
         #header-text { font-size: 16px; font-weight: bold; color: #d63384; flex-grow: 1; }
         #close-btn { background: none; border: none; font-size: 20px; color: #d63384; cursor: pointer; font-weight: bold; }
         
@@ -77,17 +78,17 @@
     <!-- Map Area -->
     <div id="map"></div>
 
-    <!-- Floating Cartoon Button (স্ক্রিনের ডানদিকে নিচে থাকবে) -->
+    <!-- Floating Cute Robot -->
     <div id="floating-bot" onclick="toggleChat()">
-        <img src="https://media.tenor.com/w1A4uA5d0-MAAAAi/bubu-dudu.gif" alt="Cartoon">
+        <!-- গুগলের অফিশিয়াল অ্যানিমেটেড রোবট (কখনো ভাঙবে না) -->
+        <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/512.gif" alt="Cute Robot">
     </div>
 
     <!-- Chatbot Area -->
     <div id="chat-section">
         <div id="chat-header">
-            <img id="cartoon-gif" src="https://media.tenor.com/w1A4uA5d0-MAAAAi/bubu-dudu.gif" alt="Cartoon">
+            <img id="cartoon-gif" src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/512.gif" alt="Cute Robot">
             <div id="header-text">Pradip's AI Assistant 🤖</div>
-            <!-- চ্যাট বক্স বন্ধ করার বাটন -->
             <button id="close-btn" onclick="toggleChat()">✖</button>
         </div>
         
@@ -133,30 +134,25 @@
         let greetingSent = false;
         let autoRomanceTimer = null;
 
-        // চ্যাটবক্স খোলা এবং বন্ধ করার ফাংশন
         function toggleChat() {
             isChatOpen = !isChatOpen;
             if(isChatOpen) {
-                // চ্যাটবক্স খুলবে
                 chatSection.style.bottom = "0";
                 floatingBot.style.display = "none";
-                mapDiv.style.height = "50vh"; // ম্যাপ ছোট হয়ে যাবে
+                mapDiv.style.height = "50vh"; 
                 
-                // ম্যাপের সাইজ অ্যাডজাস্টমেন্ট
                 setTimeout(() => map.invalidateSize(), 300);
 
-                // প্রথমবার চ্যাট খুললে ওয়েলকাম মেসেজ
                 if(!greetingSent) {
                     setTimeout(() => { appendMessage(`Hii Megha, ${getGreeting()}! 🌸`, 'bot'); }, 500);
                     setTimeout(() => { appendMessage("আমি Pradip-এর তৈরি করা একটা ছোট্ট AI বট। প্রদীপের সম্বন্ধে যদি কিছু জানতে চাও বা বলতে চাও, আমাকে বলতে পারো! 🥰", 'bot'); }, 2500);
                     greetingSent = true;
-                    startAutoRomance(); // রোমান্টিক মেসেজ টাইমার শুরু
+                    startAutoRomance(); 
                 }
             } else {
-                // চ্যাটবক্স লুকাবে
                 chatSection.style.bottom = "-100%";
                 floatingBot.style.display = "flex";
-                mapDiv.style.height = "100vh"; // ম্যাপ আবার ফুল-স্ক্রিন হবে
+                mapDiv.style.height = "100vh"; 
                 
                 setTimeout(() => map.invalidateSize(), 300);
             }
