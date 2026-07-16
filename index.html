@@ -7,30 +7,60 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #e0e0e0; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
-        /* Minimalist Chat Window */
-        #chat-container {
+        /* Cute Floating Bot Icon */
+        #bot-icon {
             position: absolute;
-            bottom: 20px;
+            bottom: 25px;
+            right: 25px;
+            width: 55px;
+            height: 55px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: transform 0.2s ease-in-out;
+        }
+        #bot-icon:active { transform: scale(0.9); }
+
+        /* Minimalist Chat Window - Hidden by default */
+        #chat-container {
+            display: none; /* Initially hidden */
+            position: absolute;
+            bottom: 90px;
             right: 20px;
             width: 320px;
-            background: rgba(255, 255, 255, 0.95);
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.98);
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             z-index: 1000;
-            display: flex;
             flex-direction: column;
             overflow: hidden;
+            border: 1px solid #f0f0f0;
         }
         #chat-header {
-            background: #f1f1f1;
+            background: #ffffff;
             padding: 15px;
-            text-align: center;
-            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
             color: #333;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #eee;
+        }
+        .close-btn {
+            cursor: pointer;
+            color: #999;
+            font-size: 16px;
+            padding: 0 5px;
         }
         #chat-box {
             height: 300px;
@@ -40,30 +70,32 @@
             flex-direction: column;
             gap: 10px;
             font-size: 14px;
+            background: #fafafa;
         }
         .msg { padding: 10px 14px; border-radius: 18px; max-width: 80%; line-height: 1.4; }
         .msg.megha { background: #e0f7fa; color: #006064; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .msg.ai { background: #f5f5f5; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .msg.ai { background: #ffffff; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #eee; }
         
         #input-area {
             display: flex;
             padding: 10px;
-            border-top: 1px solid #ddd;
             background: #fff;
+            border-top: 1px solid #eee;
         }
         #message-input {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
             border-radius: 20px;
             outline: none;
             font-size: 14px;
+            background: #f9f9f9;
         }
         #send-btn {
             background: none;
             border: none;
             color: #00796b;
-            font-weight: bold;
+            font-weight: 600;
             padding: 0 15px;
             cursor: pointer;
         }
@@ -73,8 +105,15 @@
 
     <div id="map"></div>
 
+    <!-- Floating Bot Icon -->
+    <div id="bot-icon" onclick="toggleChat()">🤖</div>
+
+    <!-- Chat Container -->
     <div id="chat-container">
-        <div id="chat-header">একটু কথা বলি?</div>
+        <div id="chat-header">
+            <span>একটু কথা বলি?</span>
+            <span class="close-btn" onclick="toggleChat()">✖</span>
+        </div>
         <div id="chat-box">
             <div class="msg ai">কেমন আছো, মেঘা? ❤️</div>
         </div>
@@ -87,15 +126,13 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Map Initialization
-        const map = L.map('map').setView([22.5726, 88.3639], 13); // Default Kolkata
+        // Map Initialization (Starts with a zoomed-out view of India until real location arrives)
+        const map = L.map('map').setView([22.0, 80.0], 5); 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        const marker = L.marker([22.5726, 88.3639]).addTo(map)
-            .bindPopup("প্রদীপ এখানে আছে")
-            .openPopup();
+        let marker = null; // No marker initially
 
         // Location Update Logic
         setInterval(() => {
@@ -104,13 +141,35 @@
                 .then(data => {
                     if (data.lat !== 0 && data.lng !== 0) {
                         const newLatLng = new L.LatLng(data.lat, data.lng);
-                        marker.setLatLng(newLatLng);
-                        map.setView(newLatLng);
+                        
+                        if (!marker) {
+                            // If marker doesn't exist, create it and zoom in
+                            marker = L.marker(newLatLng).addTo(map)
+                                .bindPopup("প্রদীপ এখানে আছে")
+                                .openPopup();
+                            map.setView(newLatLng, 15);
+                        } else {
+                            // If marker exists, just update position
+                            marker.setLatLng(newLatLng);
+                            map.setView(newLatLng);
+                        }
                     }
-                });
+                })
+                .catch(err => console.log("Waiting for location..."));
         }, 5000);
 
-        // Chatbot Logic
+        // Chatbot UI Toggle Logic
+        const chatContainer = document.getElementById('chat-container');
+        function toggleChat() {
+            if (chatContainer.style.display === 'flex') {
+                chatContainer.style.display = 'none';
+            } else {
+                chatContainer.style.display = 'flex';
+                document.getElementById('message-input').focus();
+            }
+        }
+
+        // Chatbot Message Logic
         const chatBox = document.getElementById('chat-box');
         const messageInput = document.getElementById('message-input');
         const sendBtn = document.getElementById('send-btn');
