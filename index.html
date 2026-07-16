@@ -3,191 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>প্রদীপের লোকেশন</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>Megha's Tracker & Bot</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #e0e0e0; }
-        #map { height: 100vh; width: 100vw; z-index: 1; }
-        
-        /* Cute Floating Bot Icon */
-        #bot-icon {
-            position: absolute;
-            bottom: 25px;
-            right: 25px;
-            width: 55px;
-            height: 55px;
-            background: #ffffff;
-            border-radius: 50%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 28px;
-            cursor: pointer;
-            z-index: 1001;
-            transition: transform 0.2s ease-in-out;
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            overflow: hidden; 
         }
-        #bot-icon:active { transform: scale(0.9); }
+        
+        #map { 
+            height: 100vh; 
+            width: 100vw; 
+            display: none; 
+        }
+        #status-overlay { 
+            position: absolute; 
+            top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: #ffffff; 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            z-index: 2000; font-size: 18px; color: #555;
+        }
+        #last-update { 
+            position: fixed; 
+            top: 15px; right: 15px; 
+            z-index: 1000; 
+            background: rgba(255, 255, 255, 0.9); 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            font-size: 12px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none; 
+        }
 
-        /* Minimalist Chat Window - Hidden by default */
+        /* --- মেঘার চ্যাটবটের মিনিমালিস্ট UI --- */
         #chat-container {
-            display: none; /* Initially hidden */
-            position: absolute;
-            bottom: 90px;
+            position: fixed;
+            bottom: 20px;
             right: 20px;
-            width: 320px;
-            max-width: 90vw;
-            background: rgba(255, 255, 255, 0.98);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        #chat-window {
+            width: 300px;
+            height: 400px;
+            background: #fff;
             border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            z-index: 1000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            display: none;
             flex-direction: column;
             overflow: hidden;
-            border: 1px solid #f0f0f0;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
         }
         #chat-header {
-            background: #ffffff;
+            background: #ff4d6d;
+            color: white;
             padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 1px solid #eee;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 0.5px;
         }
-        .close-btn {
-            cursor: pointer;
-            color: #999;
-            font-size: 16px;
-            padding: 0 5px;
-        }
-        #chat-box {
-            height: 300px;
+        #chat-body {
+            flex: 1;
             padding: 15px;
             overflow-y: auto;
+            background: #fafafa;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            font-size: 14px;
-            background: #fafafa;
         }
-        .msg { padding: 10px 14px; border-radius: 18px; max-width: 80%; line-height: 1.4; }
-        .msg.megha { background: #e0f7fa; color: #006064; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .msg.ai { background: #ffffff; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #eee; }
-        
-        #input-area {
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 85%; font-size: 14px; line-height: 1.4; }
+        .msg.bot { background: #ffebee; color: #d32f2f; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .msg.megha { background: #ff4d6d; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+
+        #chat-input-area {
             display: flex;
-            padding: 10px;
-            background: #fff;
             border-top: 1px solid #eee;
+            background: #fff;
         }
-        #message-input {
+        #chat-input {
             flex: 1;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
+            padding: 12px;
+            border: none;
             outline: none;
             font-size: 14px;
-            background: #f9f9f9;
         }
         #send-btn {
-            background: none;
+            background: #ff4d6d;
+            color: white;
             border: none;
-            color: #00796b;
-            font-weight: 600;
-            padding: 0 15px;
+            padding: 0 20px;
             cursor: pointer;
+            font-weight: bold;
+        }
+        #chat-toggle-btn {
+            width: 60px;
+            height: 60px;
+            background: #ff4d6d;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4);
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+        }
+        #chat-toggle-btn:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
-
-    <!-- Floating Bot Icon -->
-    <div id="bot-icon" onclick="toggleChat()">🤖</div>
-
-    <!-- Chat Container -->
-    <div id="chat-container">
-        <div id="chat-header">
-            <span>একটু কথা বলি?</span>
-            <span class="close-btn" onclick="toggleChat()">✖</span>
-        </div>
-        <div id="chat-box">
-            <div class="msg ai">কেমন আছো, মেঘা? ❤️</div>
-        </div>
-        <div id="input-area">
-            <input type="text" id="message-input" placeholder="এখানে লেখো..." autocomplete="off">
-            <button id="send-btn">Send</button>
-        </div>
+    <!-- লোকেশন খোঁজার লোডিং স্ক্রিন -->
+    <div id="status-overlay">
+        <div style="font-size: 50px; margin-bottom: 10px;">📡</div>
+        <p>Finding Pradip's live location...</p>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- লাস্ট আপডেট টাইম -->
+    <div id="last-update">Last update: --</div>
+    
+    <!-- লাইভ ম্যাপ -->
+    <div id="map"></div>
+
+    <!-- মেঘার জন্য ফ্লোটিং চ্যাটবট -->
+    <div id="chat-container">
+        <div id="chat-window">
+            <div id="chat-header">Megha's Special Bot ❤️</div>
+            <div id="chat-body" id="chat-messages">
+                <div class="msg bot">কেমন আছো, মেঘা? প্রদীপের লাইভ লোকেশন ম্যাপে দেখতে পাচ্ছো। কিছু বলার থাকলে আমাকে জানাতে পারো! ❤️</div>
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="এখানে লেখো..." autocomplete="off">
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+        <button id="chat-toggle-btn">💬</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Map Initialization (Starts with a zoomed-out view of India until real location arrives)
-        const map = L.map('map').setView([22.0, 80.0], 5); 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        /* =========================================
+           ১. লাইভ লোকেশন ট্র্যাকিংয়ের কোড
+        ========================================= */
+        const map = L.map('map', { zoomControl: false }).setView([22.5726, 88.3639], 15);
+        L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', { 
+            maxZoom: 21,
+            attribution: '© Google'
         }).addTo(map);
+        
+        const marker = L.marker([0, 0]).addTo(map); 
+        let firstLoad = true;
 
-        let marker = null; // No marker initially
-
-        // Location Update Logic
-        setInterval(() => {
-            fetch('/location')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.lat !== 0 && data.lng !== 0) {
-                        const newLatLng = new L.LatLng(data.lat, data.lng);
+        async function fetchLocation() {
+            try {
+                // রুট আপডেট করা হয়েছে (/location)
+                const response = await fetch('/location');
+                const data = await response.json();
+                
+                // জিরো (0) লোকেশন বাদ দেওয়ার লজিক ঠিক করা হয়েছে
+                if(data.lat !== 0 && data.lng !== 0) {
+                    const newLatLng = new L.LatLng(data.lat, data.lng);
+                    marker.setLatLng(newLatLng);
+                    
+                    if(firstLoad) {
+                        document.getElementById('status-overlay').style.display = 'none';
+                        document.getElementById('map').style.display = 'block';
+                        document.getElementById('last-update').style.display = 'block';
                         
-                        if (!marker) {
-                            // If marker doesn't exist, create it and zoom in
-                            marker = L.marker(newLatLng).addTo(map)
-                                .bindPopup("প্রদীপ এখানে আছে")
-                                .openPopup();
-                            map.setView(newLatLng, 15);
-                        } else {
-                            // If marker exists, just update position
-                            marker.setLatLng(newLatLng);
-                            map.setView(newLatLng);
-                        }
+                        setTimeout(function(){ 
+                            map.invalidateSize(); 
+                            map.setView(newLatLng, 17);
+                        }, 200); 
+                        
+                        firstLoad = false;
+                    } else {
+                        map.setView(newLatLng); 
                     }
-                })
-                .catch(err => console.log("Waiting for location..."));
-        }, 5000);
-
-        // Chatbot UI Toggle Logic
-        const chatContainer = document.getElementById('chat-container');
-        function toggleChat() {
-            if (chatContainer.style.display === 'flex') {
-                chatContainer.style.display = 'none';
-            } else {
-                chatContainer.style.display = 'flex';
-                document.getElementById('message-input').focus();
+                    
+                    document.getElementById('last-update').innerText = "Last update: " + new Date().toLocaleTimeString();
+                }
+            } catch (error) { 
+                console.error("Waiting for live data..."); 
             }
         }
+        
+        setInterval(fetchLocation, 5000);
+        fetchLocation();
 
-        // Chatbot Message Logic
-        const chatBox = document.getElementById('chat-box');
-        const messageInput = document.getElementById('message-input');
+        /* =========================================
+           ২. চ্যাটবটের কন্ট্রোল এবং এআই লজিক
+        ========================================= */
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        const chatWindow = document.getElementById('chat-window');
         const sendBtn = document.getElementById('send-btn');
+        const chatInput = document.getElementById('chat-input');
+        const chatBody = document.getElementById('chat-body');
 
+        // চ্যাট উইন্ডো খোলা এবং বন্ধ করা
+        chatToggleBtn.addEventListener('click', () => {
+            if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
+                chatWindow.style.display = 'flex';
+                chatToggleBtn.innerText = '✖';
+                chatInput.focus();
+            } else {
+                chatWindow.style.display = 'none';
+                chatToggleBtn.innerText = '💬';
+            }
+        });
+
+        // এআই-এর কাছে মেসেজ পাঠানো
         async function sendMessage() {
-            const text = messageInput.value.trim();
-            if (!text) return;
+            const text = chatInput.value.trim();
+            if(!text) return;
 
-            // Show Megha's message
-            const meghaDiv = document.createElement('div');
-            meghaDiv.className = 'msg megha';
-            meghaDiv.innerText = text;
-            chatBox.appendChild(meghaDiv);
-            messageInput.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
+            // মেঘার মেসেজ ডানদিকে দেখাবে
+            const meghaMsg = document.createElement('div');
+            meghaMsg.className = 'msg megha';
+            meghaMsg.innerText = text;
+            chatBody.appendChild(meghaMsg);
+            
+            chatInput.value = '';
+            chatBody.scrollTop = chatBody.scrollHeight;
 
-            // Fetch AI reply
             try {
+                // সার্ভারের এআই রুটে কল করা
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -195,24 +244,22 @@
                 });
                 const data = await response.json();
 
-                // Show AI message
-                const aiDiv = document.createElement('div');
-                aiDiv.className = 'msg ai';
-                aiDiv.innerText = data.reply;
-                chatBox.appendChild(aiDiv);
-                chatBox.scrollTop = chatBox.scrollHeight;
+                // এআই-এর রিপ্লাই বাঁদিকে দেখাবে
+                const botMsg = document.createElement('div');
+                botMsg.className = 'msg bot';
+                botMsg.innerText = data.reply;
+                chatBody.appendChild(botMsg);
+                
+                chatBody.scrollTop = chatBody.scrollHeight;
             } catch (error) {
                 console.error("Chat Error:", error);
             }
         }
 
         sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
+        chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
-        
-        // Fix for map size rendering
-        setTimeout(() => { map.invalidateSize(); }, 500);
     </script>
 </body>
 </html>
