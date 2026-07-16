@@ -1,13 +1,13 @@
 {
-  "name": "megha-tracker",
+  "name": "megha-tracker-bot",
   "version": "1.0.0",
-  "description": "Live GPS Tracker and AI Chatbot for Megha",
+  "description": "Tracker and Bot for Megha",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "@google/generative-ai": "^0.2.1"
+    "express": "^4.19.2",
+    "@google/generative-ai": "^0.21.0"
   }
 }
