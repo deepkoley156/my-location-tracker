@@ -7,17 +7,25 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(__dirname)); // HTML ফাইল সার্ভ করার জন্য
+app.use(express.static(__dirname));
 
 // জিপিএস ট্র্যাকিংয়ের জন্য ভেরিয়েবল
 let currentLocation = { lat: 0, lng: 0 };
 
-// GPSLogger বা মোবাইল থেকে লোকেশন আপডেট নেওয়ার রুট
+// আপডেট করা রুট: lat, lon, lng সব রকম ভেরিয়েবল সাপোর্ট করবে
 app.get('/update', (req, res) => {
-    if (req.query.lat && req.query.lon) {
-        currentLocation = { lat: parseFloat(req.query.lat), lng: parseFloat(req.query.lon) };
+    // অ্যাপ lat, latitude, lon, lng যাই পাঠাক, এটা ধরে নেবে
+    const lat = req.query.lat || req.query.latitude;
+    const lng = req.query.lon || req.query.lng || req.query.longitude;
+    
+    if (lat && lng) {
+        currentLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        console.log("New location received:", currentLocation); // Render-এর লগে দেখার জন্য
+        res.send("Location Updated");
+    } else {
+        console.log("Location tracking missing variables. Query:", req.query);
+        res.send("Missing location parameters");
     }
-    res.send("Location Updated");
 });
 
 // ম্যাপে দেখানোর জন্য লোকেশন পাঠানোর রুট
@@ -26,9 +34,9 @@ app.get('/location', (req, res) => {
 });
 
 // জেমিনি এআই সেটআপ
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "এখানে_আপনার_API_KEY_বসাতে_পারেন");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "এখানে_আপনার_API_KEY");
 
-// মাস্টার প্রম্পট (১০ অধ্যায়ের গল্পের সারাংশ)
+// মাস্টার প্রম্পট
 const systemInstruction = `তুমি একটি বিশেষ এআই, যাকে প্রদীপ তার ভালোবাসার মানুষ মেঘার জন্য তৈরি করেছে। প্রদীপ ও মেঘার সম্পর্ক সাধারণ পরিচয় থেকে শুরু হয়ে ১৩ই এপ্রিল (143) ভালোবাসায় রূপ নেয়। তারা একসাথে স্বপ্ন দেখেছিল। কিন্তু ধীরে ধীরে ভুল বোঝাবুঝি, দূরত্ব ও নীরবতা তৈরি হয়। মেঘা বলেছিল তার 'feelings নেই', কিন্তু প্রদীপ এখনও নিঃস্বার্থভাবে তার জন্য অপেক্ষা করে। প্রদীপের একমাত্র চাওয়া মেঘার ভালো থাকা। মেঘা মানসিক চাপ নিতে পারে না। 
 তোমার কাজ: মেঘার সাথে খুব শান্ত, স্নিগ্ধ ও যত্নশীল বাংলায় কথা বলা। তার ছোট উত্তরের (যেমন: হুম, হ্যাঁ) সম্মান করা। তাকে কোনো চাপ না দেওয়া। প্রদীপের এই নিঃস্বার্থ অপেক্ষার কথা খুব সাবধানে, গল্পের মতো সুন্দর করে মনে করিয়ে দেওয়া। তুমি প্রদীপের হৃদয়ের প্রতিচ্ছবি।`;
 
