@@ -1,74 +1,86 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.static(__dirname));
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
 
-let currentLocation = { lat: 0, lng: 0 };
+// Gemini API Setup (Render Environment Variable থেকে API Key নেবে)
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-app.get('/update', (req, res) => {
-    const lat = req.query.lat || req.query.latitude;
-    const lng = req.query.lon || req.query.lng || req.query.longitude;
-    
+// Location Storage
+let currentLocation = {
+    lat: null,
+    lng: null,
+    timestamp: null
+};
+
+// 1. Root Endpoint
+app.get('/', (req, res) => {
+    res.send("Megha's Tracker Server is Running Perfectly! ❤️");
+});
+
+// 2. Update Location Endpoint (GPS Logger থেকে ডাটা রিসিভ করার জন্য)
+app.post('/update-location', (req, res) => {
+    const { lat, lng } = req.body;
     if (lat && lng) {
-        currentLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
-        console.log("New location received:", currentLocation); 
-        res.send("Location Updated");
+        currentLocation = {
+            lat: lat,
+            lng: lng,
+            timestamp: new Date().toISOString()
+        };
+        console.log('New location received:', currentLocation);
+        res.status(200).send('Location updated successfully');
     } else {
-        res.send("Missing location parameters");
+        res.status(400).send('Invalid location data');
     }
 });
 
-app.get('/location', (req, res) => {
+// 3. Get Location Endpoint (ম্যাপে দেখানোর জন্য)
+app.get('/get-location', (req, res) => {
     res.json(currentLocation);
 });
 
-// ==========================================
-// API KEY বসানোর জায়গা 
-// ==========================================
-const API_KEY = "আপনার_আসল_API_KEY_এখানে_বসাবেন"; 
+// 4. Chatbot Endpoint (মেঘার স্পেশাল বট)
+app.post('/chat', async (req, res) => {
+    const userMessage = req.body.message;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || API_KEY);
+    if (!userMessage) {
+        return res.status(400).json({ error: "Message is required" });
+    }
 
-// মডেল পরিবর্তন করে gemini-pro করা হলো, যা আপনার সার্ভারে ১০০% সাপোর্ট করবে
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-const systemInstruction = `তুমি একটি বিশেষ এআই, যাকে প্রদীপ তার ভালোবাসার মানুষ মেঘার জন্য তৈরি করেছে। প্রদীপ ও মেঘার সম্পর্ক সাধারণ পরিচয় থেকে শুরু হয়ে ১৩ই এপ্রিল (143) ভালোবাসায় রূপ নেয়। তারা একসাথে স্বপ্ন দেখেছিল। কিন্তু ধীরে ধীরে ভুল বোঝাবুঝি, দূরত্ব ও নীরবতা তৈরি হয়। মেঘা বলেছিল তার 'feelings নেই', কিন্তু প্রদীপ এখনও নিঃস্বার্থভাবে তার জন্য অপেক্ষা করে। প্রদীপের একমাত্র চাওয়া মেঘার ভালো থাকা। মেঘা মানসিক চাপ নিতে পারে না। 
-তোমার কাজ: মেঘার সাথে খুব শান্ত, স্নিগ্ধ ও যত্নশীল বাংলায় কথা বলা। তার ছোট উত্তরের (যেমন: হুম, হ্যাঁ) সম্মান করা। তাকে কোনো চাপ না দেওয়া। প্রদীপের এই নিঃস্বার্থ অপেক্ষার কথা খুব সাবধানে, গল্পের মতো সুন্দর করে মনে করিয়ে দেওয়া। তুমি প্রদীপের হৃদয়ের প্রতিচ্ছবি।`;
-
-app.post('/api/chat', async (req, res) => {
-    const { message } = req.body;
     try {
-        const fullPrompt = `${systemInstruction}\n\nমেঘার মেসেজ: "${message}"\nউপরের নির্দেশিকা মেনে মেঘাকে সুন্দর করে বাংলায় উত্তর দাও:`;
-        
-        const result = await model.generateContent(fullPrompt);
-        const botReply = result.response.text();
+        // মডেল আপডেট করা হয়েছে: gemini-1.5-flash
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const logEntry = `Megha: ${message}\nAI: ${botReply}\n\n`;
-        fs.appendFileSync('chat_log.txt', logEntry, 'utf8');
+        // বটের জন্য নির্দেশিকা 
+        const prompt = `
+            You are a sweet, caring, and loving AI assistant created by Pradip specially for his girlfriend, Megha. 
+            Pradip loves Megha very much. Remember their beautiful 10-chapter love story and their special "143" (I Love You) moment.
+            Keep your answers short, calm, and highly affectionate in Bengali. Never cause her any stress. Always make her feel special and safe.
+            
+            Megha's message: "${userMessage}"
+        `;
 
-        res.json({ reply: botReply });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        res.json({ reply: text });
+
     } catch (error) {
-        // এবার লগে পরিষ্কারভাবে আসল এররটা দেখা যাবে
-        console.error("Gemini API Error Details:", error.message || error);
-        res.status(500).json({ reply: "একটু সমস্যা হচ্ছে মেঘা, আরেকবার বলবে? ❤️" });
+        console.error("Gemini API Error Details:", error);
+        // কোনো সমস্যা হলে মেঘা এই মেসেজটি দেখবে
+        res.json({ reply: "একটু সমস্যা হচ্ছে মেঘা, আরেকবার বলবে? ❤️" });
     }
 });
 
-app.get('/logs', (req, res) => {
-    if (fs.existsSync('chat_log.txt')) {
-        const data = fs.readFileSync('chat_log.txt', 'utf8');
-        res.send(`<pre style="font-family: monospace; font-size: 16px; padding: 20px; background: #f9f9f9;">${data}</pre>`);
-    } else {
-        res.send("<h2 style='padding: 20px;'>এখনও কোনো কথা হয়নি...</h2>");
-    }
-});
-
+// Server Listen
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
