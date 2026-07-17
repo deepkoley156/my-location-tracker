@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const path = require('path'); // ফাইল কানেক্ট করার জন্য নতুন যোগ করা হয়েছে
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -9,8 +10,9 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(__dirname)); // আপনার index.html ও অন্যান্য ডিজাইন ফাইল লোড করবে
 
-// Gemini API Setup (Render Environment Variable থেকে API Key নেবে)
+// Gemini API Setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Location Storage
@@ -20,12 +22,12 @@ let currentLocation = {
     timestamp: null
 };
 
-// 1. Root Endpoint
+// 1. Root Endpoint (এবার আর টেক্সট নয়, সরাসরি আপনার ম্যাপের পেজ লোড হবে)
 app.get('/', (req, res) => {
-    res.send("Megha's Tracker Server is Running Perfectly! ❤️");
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 2. Update Location Endpoint (GPS Logger থেকে ডাটা রিসিভ করার জন্য)
+// 2. Update Location Endpoint
 app.post('/update-location', (req, res) => {
     const { lat, lng } = req.body;
     if (lat && lng) {
@@ -41,7 +43,7 @@ app.post('/update-location', (req, res) => {
     }
 });
 
-// 3. Get Location Endpoint (ম্যাপে দেখানোর জন্য)
+// 3. Get Location Endpoint
 app.get('/get-location', (req, res) => {
     res.json(currentLocation);
 });
@@ -55,10 +57,8 @@ app.post('/chat', async (req, res) => {
     }
 
     try {
-        // মডেল আপডেট করা হয়েছে: gemini-1.5-flash
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        // বটের জন্য নির্দেশিকা 
         const prompt = `
             You are a sweet, caring, and loving AI assistant created by Pradip specially for his girlfriend, Megha. 
             Pradip loves Megha very much. Remember their beautiful 10-chapter love story and their special "143" (I Love You) moment.
@@ -75,7 +75,6 @@ app.post('/chat', async (req, res) => {
 
     } catch (error) {
         console.error("Gemini API Error Details:", error);
-        // কোনো সমস্যা হলে মেঘা এই মেসেজটি দেখবে
         res.json({ reply: "একটু সমস্যা হচ্ছে মেঘা, আরেকবার বলবে? ❤️" });
     }
 });
