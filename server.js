@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,50 +29,56 @@ app.get('/location', (req, res) => {
 
 // ==========================================
 // API KEY শুধুমাত্র environment variable থেকে নেওয়া হচ্ছে।
-// কোডে সরাসরি key লিখবে না — বিশেষ করে এই ফাইলটা
-// public static site হিসেবে সার্ভ হচ্ছে, তাই কোডে key
-// থাকলে যে কেউ দেখে ফেলতে পারে।
-//
-// চালানোর আগে টার্মিনালে সেট করো:
-//   GEMINI_API_KEY=তোমার_আসল_key node server.js
-// অথবা .env ফাইল ব্যবহার করলে dotenv প্যাকেজ লাগবে।
+// Render ড্যাশবোর্ডে Environment ট্যাবে গিয়ে
+// GROQ_API_KEY নামে variable যোগ করো (console.groq.com থেকে key নাও)
 // ==========================================
-const API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-if (!API_KEY) {
-    console.error("GEMINI_API_KEY সেট করা নেই। চ্যাট ফিচার কাজ করবে না।");
+if (!GROQ_API_KEY) {
+    console.error("GROQ_API_KEY সেট করা নেই। চ্যাট ফিচার কাজ করবে না।");
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-// gemini-pro এখন deprecated — তাই আগে সব রিকোয়েস্ট ফেইল হচ্ছিল।
-// এখন একটা current, supported মডেল ব্যবহার করা হলো।
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-// নিরপেক্ষ, সাধারণ assistant প্রম্পট — কোনো emotional persona
-// বা বারবার মনে করানোর script নেই।
+// নিরপেক্ষ, সাধারণ assistant প্রম্পট
 const systemInstruction = `তুমি একটি সহায়ক, বন্ধুত্বপূর্ণ AI অ্যাসিস্ট্যান্ট। ব্যবহারকারীর প্রশ্নের সংক্ষিপ্ত, স্পষ্ট এবং শান্ত বাংলায় উত্তর দাও। ব্যবহারকারীর ব্যক্তিগত সিদ্ধান্ত এবং সীমারেখাকে সম্মান করো।`;
 
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
 
-    if (!API_KEY) {
+    if (!GROQ_API_KEY) {
         return res.status(500).json({ reply: "সার্ভারে API key সেট করা নেই। অ্যাডমিনের সাথে যোগাযোগ করো।" });
     }
 
     try {
-        const fullPrompt = `${systemInstruction}\n\nব্যবহারকারীর মেসেজ: "${message}"\nউত্তর দাও:`;
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: message }
+                ]
+            })
+        });
 
-        const result = await model.generateContent(fullPrompt);
-        const botReply = result.response.text();
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Groq API Error Details:", data);
+            return res.status(500).json({ reply: "একটু সমস্যা হচ্ছে, আরেকবার চেষ্টা করবে?" });
+        }
+
+        const botReply = data.choices[0].message.content;
 
         const logEntry = `User: ${message}\nAI: ${botReply}\n\n`;
         fs.appendFileSync('chat_log.txt', logEntry, 'utf8');
 
         res.json({ reply: botReply });
     } catch (error) {
-        // আসল error message কনসোলে দেখা যাবে, ফলে ডিবাগ করা সহজ হবে
-        console.error("Gemini API Error Details:", error.message || error);
+        console.error("Groq API Error Details:", error.message || error);
         res.status(500).json({ reply: "একটু সমস্যা হচ্ছে, আরেকবার চেষ্টা করবে?" });
     }
 });
