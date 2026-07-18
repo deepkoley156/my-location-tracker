@@ -28,9 +28,7 @@ app.get('/location', (req, res) => {
 });
 
 // ==========================================
-// API KEY শুধুমাত্র environment variable থেকে নেওয়া হচ্ছে।
-// Render ড্যাশবোর্ডে Environment ট্যাবে গিয়ে
-// GROQ_API_KEY নামে variable যোগ করো (console.groq.com থেকে key নাও)
+// API KEY environment variable থেকে নেওয়া হচ্ছে।
 // ==========================================
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -38,14 +36,19 @@ if (!GROQ_API_KEY) {
     console.error("GROQ_API_KEY সেট করা নেই। চ্যাট ফিচার কাজ করবে না।");
 }
 
-// নিরপেক্ষ, সাধারণ assistant প্রম্পট
-const systemInstruction = `তুমি একটি সহায়ক, বন্ধুত্বপূর্ণ AI অ্যাসিস্ট্যান্ট। ব্যবহারকারীর প্রশ্নের সংক্ষিপ্ত, স্পষ্ট এবং শান্ত বাংলায় উত্তর দাও। ব্যবহারকারীর ব্যক্তিগত সিদ্ধান্ত এবং সীমারেখাকে সম্মান করো।`;
+// ==========================================
+// মেঘার জন্য স্পেশাল প্রম্পট (AI-এর ব্রেন)
+// ==========================================
+const systemInstruction = `তুমি কোনো সাধারণ AI নও, তুমি হলে প্রদীপের তৈরি করা একটি বিশেষ চ্যাটবট। তোমার একমাত্র কাজ হলো মেঘার সাথে কথা বলা এবং তাকে স্পেশাল ফিল করানো। 
+তুমি মেঘার সাথে খুব মিষ্টি, রোমান্টিক, এবং যত্নশীল বাংলায় কথা বলবে। তোমার কথার মধ্যে যেন প্রদীপের ভালোবাসার ছোঁয়া থাকে। 
+প্রয়োজনে মেঘার সাথে কথায় কথায় প্রদীপ আর মেঘার '১০-অধ্যায়ের ভালোবাসার গল্প', তাদের বিশেষ '১৪৩' কানেকশন, এবং '১৩ এপ্রিল'-এর (যেদিন মেঘা প্রথম তার অনুভূতির কথা জানিয়েছিল) সুন্দর স্মৃতির কথা মনে করিয়ে দেবে। 
+মেঘার যেকোনো প্রশ্নের উত্তর এমনভাবে দেবে যেন প্রদীপ তার ভালোবাসার বার্তা তোমার মাধ্যমে মেঘার কাছে পৌঁছে দিচ্ছে।`;
 
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
 
     if (!GROQ_API_KEY) {
-        return res.status(500).json({ reply: "সার্ভারে API key সেট করা নেই। অ্যাডমিনের সাথে যোগাযোগ করো।" });
+        return res.status(500).json({ reply: "সার্ভারে API key সেট করা নেই। প্রদীপকে একটু জানাও।" });
     }
 
     try {
@@ -68,18 +71,18 @@ app.post('/api/chat', async (req, res) => {
 
         if (!response.ok) {
             console.error("Groq API Error Details:", data);
-            return res.status(500).json({ reply: "একটু সমস্যা হচ্ছে, আরেকবার চেষ্টা করবে?" });
+            return res.status(500).json({ reply: "একটু সমস্যা হচ্ছে মেঘা, আরেকবার বলবে? ❤️" });
         }
 
         const botReply = data.choices[0].message.content;
 
-        const logEntry = `User: ${message}\nAI: ${botReply}\n\n`;
+        const logEntry = `Megha: ${message}\nBot: ${botReply}\n\n`;
         fs.appendFileSync('chat_log.txt', logEntry, 'utf8');
 
         res.json({ reply: botReply });
     } catch (error) {
         console.error("Groq API Error Details:", error.message || error);
-        res.status(500).json({ reply: "একটু সমস্যা হচ্ছে, আরেকবার চেষ্টা করবে?" });
+        res.status(500).json({ reply: "একটু সমস্যা হচ্ছে মেঘা, আরেকবার বলবে? ❤️" });
     }
 });
 
